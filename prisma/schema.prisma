@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserCategory {
+  MASTER
+  GESTOR
+  OPERADOR
+  CLIENTE
+}
+
+model Company {
+  id        Int      @id @default(autoincrement())
+  name      String
+  tradeName String?
+  document  String   @unique
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payables  Payable[]
+  status String @default("Pendente")
+  bankTransactions BankTransaction[]
+  bankAccounts BankAccount[]
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  companyId    Int
+  name         String
+  email        String       @unique
+  cpf          String       @unique
+  category     UserCategory
+  passwordHash String
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+enum FinanceStatus {
+  PENDENTE
+  A_VENCER
+  VENCE_HOJE
+  PAGO
+  RECEBIDO
+}
+
+model Payable {
+  id          Int           @id @default(autoincrement())
+  companyId   Int
+  description String
+  amount      Decimal       @db.Decimal(14, 2)
+  paymentType String
+  dueDate     DateTime
+  launchDate  DateTime
+  userName    String
+  category    String
+  status      FinanceStatus @default(A_VENCER)
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+enum BankTransactionType {
+  CREDIT
+  DEBIT
+}
+
+model BankTransaction {
+  id             Int                 @id @default(autoincrement())
+  companyId      Int
+  bankAccountId  Int?
+  date           DateTime
+  description    String
+  amount         Decimal             @db.Decimal(14, 2)
+  type           BankTransactionType
+  documentNumber String?
+  fitId          String?             @unique
+  sourceFile     String?
+  reconciled     Boolean             @default(false)
+  payableId      Int?
+  receivableId   Int?
+
+  company        Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  model BankAccount {
+  id          Int      @id @default(autoincrement())
+  companyId   Int
+  bank        String
+  label       String
+  agency      String
+  account     String
+  balance     Decimal  @default(0) @db.Decimal(14, 2)
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+}
